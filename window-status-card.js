@@ -96,8 +96,12 @@ class WindowStatusCard extends HTMLElement {
           color: var(--wsc-color);
           white-space: nowrap;
         }
-        .duration ha-icon {
-          --mdc-icon-size: 20px;
+        .duration-icon {
+          width: 20px;
+          height: 20px;
+          background-repeat: no-repeat;
+          background-position: center;
+          background-size: contain;
         }
         @keyframes ultra-window-on {
           0%   { transform: perspective(200px) rotateY(0deg) scale(1); }
@@ -215,12 +219,17 @@ class WindowStatusCard extends HTMLElement {
     const key = JSON.stringify(m);
     if (key === this._key) return;
     this._key = key;
+    const colorHex = m.color.replace('#', '%23');
+    const svgDataUri = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='13' r='8' fill='none' stroke='${colorHex}' stroke-width='2'/><path d='M12 8v5l3 2M9 2h6' fill='none' stroke='${colorHex}' stroke-width='2' stroke-linecap='round'/></svg>")`;
 
     this._card.style.setProperty("--wsc-color", m.color);
     this._card.style.setProperty("--wsc-animation", m.animation);
     this._mainIcon.innerHTML = `<ha-icon icon="${esc(m.icon)}"></ha-icon>`;
     this._text.innerHTML = `<div class="name">${esc(m.name)}</div><div class="status">${esc(m.status)}</div>`;
-    this._duration.innerHTML = `<ha-icon icon="mdi:timer-outline"></ha-icon>${esc(m.durationText)}`;
+    this._duration.innerHTML = `
+      <div class="duration-icon" style="background-image: ${svgDataUri}"></div>
+      <span>${esc(m.durationText)}</span>
+    `;
     this._card.setAttribute("aria-label", `${m.name}, ${m.status}, open for ${m.durationText}`);
   }
 
