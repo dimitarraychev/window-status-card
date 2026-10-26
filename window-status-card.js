@@ -6,7 +6,7 @@
 const CARD_TAG = "window-status-card";
 const EDITOR_TAG = "window-status-card-editor";
 const CARD_NAME = "Window Status Card";
-const CARD_VERSION = "0.1.2-beta";
+const CARD_VERSION = "0.2.3-beta";
 
 const UNAVAILABLE = ["unknown", "unavailable", "", undefined, null];
 
