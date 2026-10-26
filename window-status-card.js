@@ -6,7 +6,7 @@
 const CARD_TAG = "window-status-card";
 const EDITOR_TAG = "window-status-card-editor";
 const CARD_NAME = "Window Status Card";
-const CARD_VERSION = "0.2.3-beta";
+const CARD_VERSION = "0.2.4-beta";
 
 const UNAVAILABLE = ["unknown", "unavailable", "", undefined, null];
 
@@ -142,7 +142,7 @@ class WindowStatusCard extends HTMLElement {
 
   static getStubConfig(hass) {
     const first = Object.keys(hass?.states || {}).find(
-      (id) => id.startsWith("binary_sensor.") && hass.states[id].attributes?.device_class === "window"
+      (id) => id.startsWith("binary_sensor.") && ["window", "door", "opening", "garage_door"].includes(hass.states[id].attributes?.device_class)
     );
     return { entity: first || "binary_sensor.window", name: "Window" };
   }
@@ -177,20 +177,27 @@ class WindowStatusCard extends HTMLElement {
     const color = isOpen ? "#FF9F0A" : "#8E8E93";
     const animation = isOpen ? "ultra-window-on 1.8s ease-in-out infinite" : "none";
 
-    let minutes = 0;
-    if (stateObj && stateObj.last_changed) {
-      const lastChanged = new Date(stateObj.last_changed).getTime();
-      const now = Date.now();
-      minutes = Math.max(0, Math.floor((now - lastChanged) / 60000));
-    }
-
     let durationText = "";
-    if (minutes >= 1440) {
-      durationText = `${Math.floor(minutes / 1440)}d ${Math.floor((minutes % 1440) / 60)}h`;
-    } else if (minutes >= 60) {
-      durationText = `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+    const durationSensorId = cfg.duration_sensor;
+    const durationSensorObj = durationSensorId ? hass?.states[durationSensorId] : null;
+
+    if (durationSensorObj && !UNAVAILABLE.includes(durationSensorObj.state)) {
+      durationText = durationSensorObj.state;
     } else {
-      durationText = `${minutes % 60}m`;
+      let minutes = 0;
+      if (stateObj && stateObj.last_changed) {
+        const lastChanged = new Date(stateObj.last_changed).getTime();
+        const now = Date.now();
+        minutes = Math.max(0, Math.floor((now - lastChanged) / 60000));
+      }
+
+      if (minutes >= 1440) {
+        durationText = `${Math.floor(minutes / 1440)}d ${Math.floor((minutes % 1440) / 60)}h`;
+      } else if (minutes >= 60) {
+        durationText = `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+      } else {
+        durationText = `${minutes % 60}m`;
+      }
     }
 
     const defaultOpenIcon = "mdi:window-open";
@@ -221,7 +228,7 @@ class WindowStatusCard extends HTMLElement {
     this._mainIcon.innerHTML = `<ha-icon icon="${esc(m.icon)}"></ha-icon>`;
     this._text.innerHTML = `<div class="name">${esc(m.name)}</div><div class="status">${esc(m.status)}</div>`;
     this._duration.innerHTML = `<ha-icon icon="mdi:progress-clock"></ha-icon>${esc(m.durationText)}`;
-    this._card.setAttribute("aria-label", `${m.name}, ${m.status}, open for ${m.durationText}`);
+    this._card.setAttribute("aria-label", `${m.name}, ${m.status}, duration ${m.durationText}`);
   }
 
   // ---------- Actions ----------
@@ -265,16 +272,34 @@ class WindowStatusCard extends HTMLElement {
 
 // ---------- Visual Editor ----------
 const EDITOR_LABELS = {
-  entity: "Window Entity",
+  entity: "Entity (Window/Door/Opening)",
   name: "Name",
+  duration_sensor: "Custom Duration Sensor (Optional)",
   open_icon: "Open Icon",
   closed_icon: "Closed Icon",
   tap_action: "Tap Action",
 };
 
 const EDITOR_SCHEMA = [
-  { name: "entity", required: true, selector: { entity: { domain: "binary_sensor" } } },
+  { 
+    name: "entity", 
+    required: true, 
+    selector: { 
+      entity: { 
+        domain: "binary_sensor", 
+        device_class: ["window", "door", "opening", "garage_door"] 
+      } 
+    } 
+  },
   { name: "name", selector: { text: {} } },
+  { 
+    name: "duration_sensor", 
+    selector: { 
+      entity: { 
+        domain: ["sensor", "input_text", "template"] 
+      } 
+    } 
+  },
   { name: "open_icon", selector: { icon: {} } },
   { name: "closed_icon", selector: { icon: {} } },
   { name: "tap_action", selector: { ui_action: {} } },
@@ -336,7 +361,7 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: CARD_TAG,
   name: CARD_NAME,
-  description: "A custom window row card with built-in duration tracking, animations, and custom icons.",
+  description: "A custom window/door row card with built-in duration tracking, custom duration sensor support, and animations.",
   preview: true,
 });
 
