@@ -59,8 +59,8 @@ class WindowStatusCard extends HTMLElement {
         .text {
           flex: 1;
           min-width: 0;
-          align-self: flex-start;
-          margin-top: 8px;
+          align-self: center;
+          margin-top: 0;
           line-height: 1.2;
           margin-left: 2px;
         }
