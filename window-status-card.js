@@ -6,7 +6,7 @@
 const CARD_TAG = "window-status-card";
 const EDITOR_TAG = "window-status-card-editor";
 const CARD_NAME = "Window Status Card";
-const CARD_VERSION = "0.2.0-beta";
+const CARD_VERSION = "0.2.1-beta";
 
 const UNAVAILABLE = ["unknown", "unavailable", "", undefined, null];
 
@@ -214,24 +214,25 @@ class WindowStatusCard extends HTMLElement {
 
   // ---------- Rendering ----------
   _render() {
-    if (!this._config || !this._hass) return;
-    const m = this._compute();
-    const key = JSON.stringify(m);
-    if (key === this._key) return;
-    this._key = key;
-    const colorHex = m.color.replace('#', '%23');
-    const svgDataUri = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='13' r='8' fill='none' stroke='${colorHex}' stroke-width='2'/><path d='M12 8v5l3 2M9 2h6' fill='none' stroke='${colorHex}' stroke-width='2' stroke-linecap='round'/></svg>")`;
-
-    this._card.style.setProperty("--wsc-color", m.color);
-    this._card.style.setProperty("--wsc-animation", m.animation);
-    this._mainIcon.innerHTML = `<ha-icon icon="${esc(m.icon)}"></ha-icon>`;
-    this._text.innerHTML = `<div class="name">${esc(m.name)}</div><div class="status">${esc(m.status)}</div>`;
-    this._duration.innerHTML = `
-      <div class="duration-icon" style="background-image: ${svgDataUri}"></div>
-      <span>${esc(m.durationText)}</span>
-    `;
-    this._card.setAttribute("aria-label", `${m.name}, ${m.status}, open for ${m.durationText}`);
-  }
+      if (!this._config || !this._hass) return;
+      const m = this._compute();
+      const key = JSON.stringify(m);
+      if (key === this._key) return;
+      this._key = key;
+  
+      const colorHex = m.color.replace('#', '%23');
+      const svgDataUri = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='13' r='8' fill='none' stroke='${colorHex}' stroke-width='2'/><path d='M12 8v5l3 2M9 2h6' fill='none' stroke='${colorHex}' stroke-width='2' stroke-linecap='round'/></svg>")`;
+  
+      this._card.style.setProperty("--wsc-color", m.color);
+      this._card.style.setProperty("--wsc-animation", m.animation);
+      this._mainIcon.innerHTML = `<ha-icon icon="${esc(m.icon)}"></ha-icon>`;
+      this._text.innerHTML = `<div class="name">${esc(m.name)}</div><div class="status">${esc(m.status)}</div>`;
+      this._duration.innerHTML = `
+        <div class="duration-icon" style="background-image: ${svgDataUri}"></div>
+        <span>${esc(m.durationText)}</span>
+      `;
+      this._card.setAttribute("aria-label", `${m.name}, ${m.status}, open for ${m.durationText}`);
+    }
 
   // ---------- Actions ----------
   _fire(type, detail) {
