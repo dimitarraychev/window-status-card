@@ -220,7 +220,7 @@ class WindowStatusCard extends HTMLElement {
     this._card.style.setProperty("--wsc-animation", m.animation);
     this._mainIcon.innerHTML = `<ha-icon icon="${esc(m.icon)}"></ha-icon>`;
     this._text.innerHTML = `<div class="name">${esc(m.name)}</div><div class="status">${esc(m.status)}</div>`;
-    this._duration.innerHTML = `<ha-icon icon="mdi:clock-outline"></ha-icon>${esc(m.durationText)}`;
+    this._duration.innerHTML = `<ha-icon icon="mdi:timer-outline"></ha-icon>${esc(m.durationText)}`;
     this._card.setAttribute("aria-label", `${m.name}, ${m.status}, open for ${m.durationText}`);
   }
 
