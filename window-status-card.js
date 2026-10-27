@@ -1,17 +1,37 @@
 /*!
  * Window Status Card
  * A custom Home Assistant card showing window state, duration, and animated indicators.
+ *
+ * Shows up under "Community" in the card picker's "By entity" tab (Home Assistant 2026.6+)
+ * via `getEntitySuggestion` on the window.customCards entry.
  */
 
 const CARD_TAG = "window-status-card";
 const EDITOR_TAG = "window-status-card-editor";
 const CARD_NAME = "Window Status Card";
-const CARD_VERSION = "0.3.0-beta";
+const CARD_VERSION = "0.3.1-beta";
 
 const UNAVAILABLE = ["unknown", "unavailable", "", undefined, null];
 
+// Binary sensor device classes this card is meant for.
+const SUPPORTED_CLASSES = ["window", "door", "opening", "garage_door"];
+
+// Icons suggested per device class (windows/openings use the card defaults).
+const CLASS_ICONS = {
+  door: { open_icon: "mdi:door-open", closed_icon: "mdi:door-closed" },
+  garage_door: { open_icon: "mdi:garage-open", closed_icon: "mdi:garage" },
+};
+
 const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+// ---------- Entity detection (used by the card picker) ----------
+/** Returns the device class when the entity is a supported binary sensor, otherwise null. */
+const detectClass = (hass, entityId) => {
+  if (typeof entityId !== "string" || !entityId.startsWith("binary_sensor.")) return null;
+  const dc = hass?.states?.[entityId]?.attributes?.device_class;
+  return SUPPORTED_CLASSES.includes(dc) ? dc : null;
+};
 
 class WindowStatusCard extends HTMLElement {
   constructor() {
@@ -140,11 +160,28 @@ class WindowStatusCard extends HTMLElement {
     return document.createElement(EDITOR_TAG);
   }
 
-  static getStubConfig(hass) {
-    const first = Object.keys(hass?.states || {}).find(
-      (id) => id.startsWith("binary_sensor.") && ["window", "door", "opening", "garage_door"].includes(hass.states[id].attributes?.device_class)
-    );
-    return { entity: first || "binary_sensor.window", name: "Window" };
+  // Used by the "By card" tab. Signature: (hass, entities, entitiesFallback).
+  static getStubConfig(hass, entities, entitiesFallback) {
+    const pool = [
+      ...(Array.isArray(entities) ? entities : []),
+      ...(Array.isArray(entitiesFallback) ? entitiesFallback : []),
+      ...Object.keys(hass?.states || {}),
+    ];
+    const entity = pool.find((e) => detectClass(hass, e)) || "binary_sensor.window";
+    return { entity, name: "Window" };
+  }
+
+  // Used by the "By entity" tab (Home Assistant 2026.6+), see window.customCards below.
+  static getEntitySuggestion(hass, entityId) {
+    const dc = detectClass(hass, entityId);
+    if (!dc) return null;
+    return {
+      config: {
+        type: `custom:${CARD_TAG}`,
+        entity: entityId,
+        ...(CLASS_ICONS[dc] || {}),
+      },
+    };
   }
 
   setConfig(config) {
@@ -281,24 +318,23 @@ const EDITOR_LABELS = {
 };
 
 const EDITOR_SCHEMA = [
-  { 
-    name: "entity", 
-    required: true, 
-    selector: { 
-      entity: { 
-        domain: "binary_sensor", 
-        device_class: ["window", "door", "opening", "garage_door"] 
-      } 
-    } 
+  {
+    name: "entity",
+    required: true,
+    selector: {
+      entity: {
+        domain: "binary_sensor",
+        device_class: SUPPORTED_CLASSES,
+      },
+    },
   },
   { name: "name", selector: { text: {} } },
-  { 
-    name: "duration_sensor", 
-    selector: { 
-      entity: { 
-        domain: ["sensor", "input_text", "template"] 
-      } 
-    } 
+  {
+    name: "duration_sensor",
+    selector: {
+      // "template" is not an entity domain; template entities live under sensor.
+      entity: { domain: ["sensor", "input_text"] },
+    },
   },
   { name: "open_icon", selector: { icon: {} } },
   { name: "closed_icon", selector: { icon: {} } },
@@ -354,15 +390,20 @@ class WindowStatusCardEditor extends HTMLElement {
   }
 }
 
-customElements.define(CARD_TAG, WindowStatusCard);
-customElements.define(EDITOR_TAG, WindowStatusCardEditor);
+// Guard against double-loading (e.g. the resource being registered twice).
+if (!customElements.get(CARD_TAG)) customElements.define(CARD_TAG, WindowStatusCard);
+if (!customElements.get(EDITOR_TAG)) customElements.define(EDITOR_TAG, WindowStatusCardEditor);
 
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: CARD_TAG,
-  name: CARD_NAME,
-  description: "A custom window/door row card with built-in duration tracking, custom duration sensor support, and animations.",
-  preview: true,
-});
+if (!window.customCards.some((c) => c.type === CARD_TAG)) {
+  window.customCards.push({
+    type: CARD_TAG,
+    name: CARD_NAME,
+    description: "A custom window/door row card with built-in duration tracking, custom duration sensor support, and animations.",
+    preview: true,
+    // Home Assistant 2026.6+: lists this card under "Community" in the "By entity" tab.
+    getEntitySuggestion: (hass, entityId) => WindowStatusCard.getEntitySuggestion(hass, entityId),
+  });
+}
 
 console.info(`%c WINDOW-STATUS-CARD %c v${CARD_VERSION} `, "color:white;background:#FF9F0A;font-weight:700", "color:#FF9F0A;background:white");
