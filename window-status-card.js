@@ -9,7 +9,7 @@
 const CARD_TAG = "window-status-card";
 const EDITOR_TAG = "window-status-card-editor";
 const CARD_NAME = "Window Status Card";
-const CARD_VERSION = "0.3.2-beta";
+const CARD_VERSION = "0.3.3-beta";
 
 const UNAVAILABLE = ["unknown", "unavailable", "", undefined, null];
 
@@ -158,7 +158,8 @@ class WindowStatusCard extends HTMLElement {
         this._onTap();
       }
     });
-
+}
+  
   // ---------- Lovelace API ----------
   static getConfigElement() {
     return document.createElement(EDITOR_TAG);
