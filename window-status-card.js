@@ -9,7 +9,7 @@
 const CARD_TAG = "window-status-card";
 const EDITOR_TAG = "window-status-card-editor";
 const CARD_NAME = "Window Status Card";
-const CARD_VERSION = "0.3.1-beta";
+const CARD_VERSION = "0.3.2-beta";
 
 const UNAVAILABLE = ["unknown", "unavailable", "", undefined, null];
 
@@ -58,8 +58,8 @@ class WindowStatusCard extends HTMLElement {
           box-shadow: inset 0 0 10px color-mix(in srgb, var(--wsc-color) 45%, transparent);
           overflow: hidden;
         }
-        .card:focus-visible { outline: none; }
-        .card:focus-visible .pill { outline: 2px solid var(--wsc-color); outline-offset: 2px; }
+        .card:focus, .card:focus-visible { outline: none; }
+        .card.kbd:focus-visible .pill { outline: 2px solid var(--wsc-color); outline-offset: 2px; }
         .icon-container {
           flex: none;
           width: 42px;
@@ -146,14 +146,18 @@ class WindowStatusCard extends HTMLElement {
     this._text = $(".text");
     this._duration = $(".duration");
 
-    this._card.addEventListener("click", () => this._onTap());
+    this._card.addEventListener("click", (e) => {
+      this._onTap();
+      if (e.detail) this._card.blur(); // pointer/touch click: don't keep focus
+    });
+    this.shadowRoot.addEventListener("pointerdown", () => this._card.classList.remove("kbd"), true);
+    this.shadowRoot.addEventListener("keydown", (e) => { if (e.key === "Tab") this._card.classList.add("kbd"); }, true);
     this._card.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
         this._onTap();
       }
     });
-  }
 
   // ---------- Lovelace API ----------
   static getConfigElement() {
