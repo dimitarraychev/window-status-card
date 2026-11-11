@@ -9,7 +9,7 @@
 const CARD_TAG = "window-status-card";
 const EDITOR_TAG = "window-status-card-editor";
 const CARD_NAME = "Window Status Card";
-const CARD_VERSION = "0.3.3-beta";
+const CARD_VERSION = "0.3.4-beta";
 
 const UNAVAILABLE = ["unknown", "unavailable", "", undefined, null];
 
@@ -20,6 +20,15 @@ const SUPPORTED_CLASSES = ["window", "door", "opening", "garage_door"];
 const CLASS_ICONS = {
   door: { open_icon: "mdi:door-open", closed_icon: "mdi:door-closed" },
   garage_door: { open_icon: "mdi:garage-open", closed_icon: "mdi:garage" },
+};
+
+// Seconds per unit, for converting a duration sensor's value to minutes.
+const SECONDS_PER_UNIT = { ms: 0.001, s: 1, sec: 1, min: 60, h: 3600, d: 86400 };
+
+const formatMinutes = (minutes) => {
+  if (minutes >= 1440) return `${Math.floor(minutes / 1440)}d ${Math.floor((minutes % 1440) / 60)}h`;
+  if (minutes >= 60) return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+  return `${minutes}m`;
 };
 
 const esc = (s) =>
@@ -222,24 +231,22 @@ class WindowStatusCard extends HTMLElement {
     let durationText = "";
     const durationSensorId = cfg.duration_sensor;
     const durationSensorObj = durationSensorId ? hass?.states[durationSensorId] : null;
-
+    
     if (durationSensorObj && !UNAVAILABLE.includes(durationSensorObj.state)) {
-      durationText = durationSensorObj.state;
+      const raw = Number(durationSensorObj.state);
+      const secPerUnit = SECONDS_PER_UNIT[durationSensorObj.attributes?.unit_of_measurement];
+      if (Number.isFinite(raw) && secPerUnit !== undefined) {
+      durationText = formatMinutes(Math.max(0, Math.round((raw * secPerUnit) / 60)));
+      } else {
+        durationText = durationSensorObj.state; // text sensors (e.g. input_text) shown as-is
+      }
     } else {
       let minutes = 0;
       if (stateObj && stateObj.last_changed) {
         const lastChanged = new Date(stateObj.last_changed).getTime();
-        const now = Date.now();
-        minutes = Math.max(0, Math.floor((now - lastChanged) / 60000));
+        minutes = Math.max(0, Math.round((Date.now() - lastChanged) / 60000));
       }
-
-      if (minutes >= 1440) {
-        durationText = `${Math.floor(minutes / 1440)}d ${Math.floor((minutes % 1440) / 60)}h`;
-      } else if (minutes >= 60) {
-        durationText = `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
-      } else {
-        durationText = `${minutes % 60}m`;
-      }
+      durationText = formatMinutes(minutes);
     }
 
     const defaultOpenIcon = "mdi:window-open";
